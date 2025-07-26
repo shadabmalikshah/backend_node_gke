@@ -1,0 +1,43 @@
+name: Deploy Backend to GKE
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud using OIDC
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: 'access_token'
+          workload_identity_provider: 'projects/97909975143/locations/global/workloadIdentityPools/github-workload-identity/providers/github-provider'
+          service_account: 'github-deployer@my-three-tier-app-466909.iam.gserviceaccount.com'
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Write firebase_key.json from secret
+        run: |
+          echo "${{ secrets.FIREBASE_KEY }}" > firebase_key.json
+
+      - name: Build and push Docker image
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+          docker build -t us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest .
+          docker push us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
+
+      - name: Deploy to GKE
+        run: |
+          gcloud container clusters get-credentials gke-github-cluster --region us-central1
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
