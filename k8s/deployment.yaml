@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: backend-deployment
   labels:
     app: backend
 spec:
@@ -14,7 +14,6 @@ spec:
       labels:
         app: backend
     spec:
-      serviceAccountName: backend-sa
       containers:
         - name: backend
           image: us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
@@ -23,13 +22,18 @@ spec:
           env:
             - name: PORT
               value: "4000"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: JWT_SECRET
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /var/secrets/firebase/service-account.json
+              value: /secrets/firebase_key.json
           volumeMounts:
-            - name: firestore-secret
-              mountPath: /var/secrets/firebase
+            - name: firebase-key
+              mountPath: /secrets
               readOnly: true
       volumes:
-        - name: firestore-secret
+        - name: firebase-key
           secret:
-            secretName: firestore-service-account
+            secretName: firebase-key
