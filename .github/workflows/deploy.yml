@@ -13,31 +13,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud using OIDC
-        uses: google-github-actions/auth@v2
-        with:
-          token_format: 'access_token'
-          workload_identity_provider: 'projects/97909975143/locations/global/workloadIdentityPools/github-workload-identity/providers/github-provider'
-          service_account: 'github-deployer@my-three-tier-app-466909.iam.gserviceaccount.com'
+    - name: Authenticate to Google Cloud using OIDC
+      uses: google-github-actions/auth@v2
+      with:
+        token_format: 'access_token'
+        workload_identity_provider: 'projects/97909975143/locations/global/workloadIdentityPools/github-workload-identity/providers/github-provider'
+        service_account: 'github-deployer@my-three-tier-app-466909.iam.gserviceaccount.com'
 
-      - name: Setup gcloud CLI
-        uses: google-github-actions/setup-gcloud@v1
+    - name: Setup gcloud CLI
+      uses: google-github-actions/setup-gcloud@v1
 
-      - name: Write firebase_key.json from secret
-        run: |
-          echo "${{ secrets.FIREBASE_KEY }}" > firebase_key.json
+    - name: Configure Docker for Artifact Registry
+      run: |
+        gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-      - name: Build and push Docker image
-        run: |
-          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-          docker build -t us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest .
-          docker push us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest .
+        docker push us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
 
-      - name: Deploy to GKE
-        run: |
-          gcloud container clusters get-credentials gke-github-cluster --region us-central1
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
+    - name: Decode Firebase Key and Create Secret
+      run: |
+        echo "${{ secrets.FIREBASE_KEY_BASE64 }}" | base64 -d > firebase_key.json
+        kubectl create secret generic firebase-key \
+          --from-file=firebase_key.json \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Create JWT Secret
+      run: |
+        kubectl create secret generic backend-secrets \
+          --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Get GKE Credentials
+      run: |
+        gcloud container clusters get-credentials gke-github-cluster --region us-central1
+
+    - name: Apply Kubernetes Deployment and Service
+      run: |
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
