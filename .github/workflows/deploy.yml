@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Authenticate to Google Cloud using OIDC
@@ -25,6 +25,10 @@ jobs:
 
     - name: Setup gcloud CLI
       uses: google-github-actions/setup-gcloud@v1
+
+    - name: Install gke-gcloud-auth-plugin
+      run: |
+        gcloud components install gke-gcloud-auth-plugin --quiet
 
     - name: Configure Docker for Artifact Registry
       run: |
@@ -39,7 +43,7 @@ jobs:
       run: |
         gcloud container clusters get-credentials gke-github-cluster --region us-central1
 
-    - name: Create Kubernetes Secrets (Firebase + JWT)
+    - name: Create Kubernetes Secrets (Firebase Key + JWT Secret)
       run: |
         echo "${{ secrets.FIREBASE_KEY }}" | base64 -d > firebase_key.json
         kubectl create secret generic firebase-key \
@@ -52,7 +56,7 @@ jobs:
 
         rm firebase_key.json
 
-    - name: Apply Kubernetes Deployment and Service
+    - name: Deploy to GKE
       run: |
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
