@@ -35,22 +35,22 @@ jobs:
         docker build -t us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest .
         docker push us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
 
-    - name: Decode Firebase Key and Create Secret
+    - name: Get GKE Credentials
       run: |
-        echo "${{ secrets.FIREBASE_KEY_BASE64 }}" | base64 -d > firebase_key.json
+        gcloud container clusters get-credentials gke-github-cluster --region us-central1
+
+    - name: Create Kubernetes Secrets (Firebase + JWT)
+      run: |
+        echo "${{ secrets.FIREBASE_KEY }}" | base64 -d > firebase_key.json
         kubectl create secret generic firebase-key \
           --from-file=firebase_key.json \
           --dry-run=client -o yaml | kubectl apply -f -
 
-    - name: Create JWT Secret
-      run: |
         kubectl create secret generic backend-secrets \
           --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
           --dry-run=client -o yaml | kubectl apply -f -
 
-    - name: Get GKE Credentials
-      run: |
-        gcloud container clusters get-credentials gke-github-cluster --region us-central1
+        rm firebase_key.json
 
     - name: Apply Kubernetes Deployment and Service
       run: |
