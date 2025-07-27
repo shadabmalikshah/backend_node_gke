@@ -56,7 +56,7 @@ jobs:
       run: |
         kubectl delete secret backend-secrets --ignore-not-found
         kubectl create secret generic backend-secrets \
-          --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" 
 
     - name: Deploy to GKE
       run: |
