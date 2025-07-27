@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   deploy:
+    name: Build & Deploy Backend
     runs-on: ubuntu-latest
 
     steps:
@@ -23,10 +24,10 @@ jobs:
         workload_identity_provider: 'projects/97909975143/locations/global/workloadIdentityPools/github-workload-identity/providers/github-provider'
         service_account: 'github-deployer@my-three-tier-app-466909.iam.gserviceaccount.com'
 
-    - name: Setup gcloud CLI
+    - name: Set up gcloud CLI
       uses: google-github-actions/setup-gcloud@v1
 
-    - name: Install gke-gcloud-auth-plugin
+    - name: Install GKE Auth Plugin
       run: |
         gcloud components install gke-gcloud-auth-plugin --quiet
 
@@ -34,7 +35,7 @@ jobs:
       run: |
         gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-    - name: Build and Push Docker Image
+    - name: Build & Push Docker Image
       run: |
         docker build -t us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest .
         docker push us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
@@ -43,18 +44,19 @@ jobs:
       run: |
         gcloud container clusters get-credentials gke-github-cluster --region us-central1
 
-    - name: Create Kubernetes Secrets (Firebase Key + JWT Secret)
+    - name: Create Firebase Key Secret
       run: |
         echo "${{ secrets.FIREBASE_KEY }}" | base64 -d > firebase_key.json
+        kubectl delete secret firebase-key --ignore-not-found
         kubectl create secret generic firebase-key \
-          --from-file=firebase_key.json \
-          --dry-run=client -o yaml | kubectl apply -f -
-
-        kubectl create secret generic backend-secrets \
-          --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-          --dry-run=client -o yaml | kubectl apply -f -
-
+          --from-file=firebase_key.json
         rm firebase_key.json
+
+    - name: Create JWT Secret
+      run: |
+        kubectl delete secret backend-secrets --ignore-not-found
+        kubectl create secret generic backend-secrets \
+          --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}"
 
     - name: Deploy to GKE
       run: |
