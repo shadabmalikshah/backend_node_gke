@@ -3,7 +3,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
-import { db } from './firebase.js'; // use exported Firestore (for future direct use if needed)
+import { db } from './firebase.js'; // just import the db; no init here
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 
@@ -17,7 +17,6 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Start server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🔥 Server running on port ${PORT}`);
