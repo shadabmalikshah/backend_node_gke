@@ -58,7 +58,7 @@ jobs:
         kubectl create secret generic backend-secrets \
           --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" 
 
-    - name: Deploy to GKE
+    - name: Deploy Backend to GKE
       run: |
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
