@@ -13,25 +13,25 @@ spec:
         app: backend
     spec:
       containers:
-        - name: backend
-          image: us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
-          ports:
-            - containerPort: 4000
-          env:
-            - name: PORT
-              value: "4000"
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: backend-secrets
-                  key: JWT_SECRET
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /secrets/firebase_key.json
-          volumeMounts:
-            - name: firebase-key
-              mountPath: /secrets
-              readOnly: true
-      volumes:
+      - name: backend
+        image: us-central1-docker.pkg.dev/my-three-tier-app-466909/backend-repo/backend:latest
+        ports:
+        - containerPort: 4000
+        env:
+        - name: PORT
+          value: "4000"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: JWT_SECRET
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/firebase_key.json
+        volumeMounts:
         - name: firebase-key
-          secret:
-            secretName: firebase-key
+          mountPath: /secrets
+          readOnly: true
+      volumes:
+      - name: firebase-key
+        secret:
+          secretName: firebase-key
