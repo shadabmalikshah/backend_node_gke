@@ -7,6 +7,9 @@ const usersCollection = db.collection('users');
 export const register = async (req, res) => {
   const { email, password } = req.body;
 
+  // ✅ Debug log to verify incoming data
+  console.log('🟡 req.body:', req.body);
+
   try {
     // Check if user exists
     const snapshot = await usersCollection.where('email', '==', email).get();
